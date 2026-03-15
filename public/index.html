@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nova Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-gradient"></div>
+    <div class="grain"></div>
+
+    <main class="app-shell">
+      <header class="top-bar">
+        <div>
+          <p class="eyebrow">Local AI Console</p>
+          <h1>Nova Chat</h1>
+        </div>
+        <div class="model-control">
+          <label for="modelInput">Model</label>
+          <input id="modelInput" value="openrouter/auto" />
+        </div>
+      </header>
+
+      <section id="chatWindow" class="chat-window" aria-live="polite"></section>
+
+      <form id="chatForm" class="chat-form">
+        <textarea
+          id="messageInput"
+          placeholder="Type your message..."
+          rows="1"
+          required
+        ></textarea>
+        <button id="sendBtn" type="submit">Send</button>
+      </form>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
