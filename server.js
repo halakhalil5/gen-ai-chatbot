@@ -35,6 +35,7 @@ app.post('/api/chat', async (req, res) => {
     const payload = {
       model: model || process.env.OPENROUTER_MODEL || 'openrouter/auto',
       messages: safeMessages,
+      stream: true,
       temperature: 0.7
     };
 
@@ -49,19 +50,91 @@ app.post('/api/chat', async (req, res) => {
       body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
+    if (!response.ok || !response.body) {
+      let message = 'OpenRouter request failed.';
+      try {
+        const data = await response.json();
+        message = data?.error?.message || data?.error || message;
+      } catch (_err) {
+        // Keep fallback message.
+      }
 
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: data?.error?.message || data?.error || 'OpenRouter request failed.'
-      });
+      return res.status(response.status || 500).json({ error: message });
     }
 
-    const assistantText = data?.choices?.[0]?.message?.content || '';
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
 
-    return res.json({ reply: assistantText, raw: data });
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let shouldStop = false;
+
+    while (!shouldStop) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      if (!value || value.length === 0) {
+        continue;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+
+        if (!trimmed || !trimmed.startsWith('data:')) {
+          continue;
+        }
+
+        const rawPayload = trimmed.replace(/^data:\s*/, '');
+        if (!rawPayload) {
+          continue;
+        }
+
+        if (rawPayload === '[DONE]') {
+          shouldStop = true;
+          break;
+        }
+
+        let parsed;
+        try {
+          parsed = JSON.parse(rawPayload);
+        } catch (_err) {
+          continue;
+        }
+
+        const delta = parsed?.choices?.[0]?.delta?.content;
+        if (!delta) {
+          continue;
+        }
+
+        res.write(delta);
+      }
+    }
+
+    if (shouldStop) {
+      try {
+        await reader.cancel();
+      } catch (_err) {
+        // Ignore cancellation errors from already-closed streams.
+      }
+    }
+
+    return res.end();
   } catch (err) {
-    return res.status(500).json({ error: 'Server error while requesting model.' });
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Server error while requesting model.' });
+    }
+
+    res.write('\n[Stream interrupted]');
+    return res.end();
   }
 });
 

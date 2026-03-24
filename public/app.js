@@ -27,6 +27,7 @@ function autoResize() {
 function setBusy(busy) {
   sendBtn.disabled = busy;
   messageInput.disabled = busy;
+  sendBtn.textContent = busy ? 'Streaming...' : 'Send';
 }
 
 addMessage('system', 'Ask anything. Your API key stays on the server in .env.');
@@ -60,15 +61,54 @@ chatForm.addEventListener('submit', async (event) => {
       })
     });
 
-    const data = await response.json();
-
     if (!response.ok) {
-      throw new Error(data.error || 'Request failed');
+      let errorMessage = 'Request failed';
+      try {
+        const data = await response.json();
+        errorMessage = data.error || errorMessage;
+      } catch (_err) {
+        // Keep fallback message.
+      }
+      throw new Error(errorMessage);
     }
 
-    const reply = data.reply || 'No response from model.';
-    addMessage('assistant', reply);
-    conversation.push({ role: 'assistant', content: reply });
+    if (!response.body) {
+      throw new Error('Streaming response is not supported in this browser.');
+    }
+
+    const assistantEl = document.createElement('article');
+    assistantEl.className = 'message assistant';
+    assistantEl.textContent = '';
+    chatWindow.appendChild(assistantEl);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let finalReply = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      if (!value || value.length === 0) {
+        continue;
+      }
+
+      const chunk = decoder.decode(value, { stream: true });
+      if (!chunk) {
+        continue;
+      }
+
+      finalReply += chunk;
+      assistantEl.textContent = finalReply;
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    const safeReply = finalReply.trim() || 'No response from model.';
+    assistantEl.textContent = safeReply;
+    conversation.push({ role: 'assistant', content: safeReply });
   } catch (error) {
     addMessage('system', `Error: ${error.message}`);
   } finally {
