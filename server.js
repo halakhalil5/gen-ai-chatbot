@@ -184,6 +184,7 @@ async function streamOpenRouterAnswer(query, res) {
     ],
     temperature: 0.7,
     stream: true,
+    stream_options: { include_usage: true },
   };
 
   const response = await fetch(API_URL, {
@@ -219,6 +220,7 @@ async function streamOpenRouterAnswer(query, res) {
   const decoder = new TextDecoder();
   let buffer = "";
   let shouldStop = false;
+  let usagePayload = null;
 
   while (!shouldStop) {
     const { done, value } = await reader.read();
@@ -259,6 +261,10 @@ async function streamOpenRouterAnswer(query, res) {
         continue;
       }
 
+      if (parsed?.usage) {
+        usagePayload = parsed.usage;
+      }
+
       const delta = parsed?.choices?.[0]?.delta?.content;
       if (!delta) {
         continue;
@@ -274,6 +280,10 @@ async function streamOpenRouterAnswer(query, res) {
     } catch (_err) {
       // Ignore cancellation errors from already-closed streams.
     }
+  }
+
+  if (usagePayload) {
+    res.write(`\n__USAGE__${JSON.stringify(usagePayload)}`);
   }
 
   return res.end();
@@ -379,7 +389,10 @@ app.post("/chat", async (req, res) => {
         );
       }
 
-      return res.json({ answer: response.data?.answer || "" });
+      return res.json({
+        answer: response.data?.answer || "",
+        usage: response.data?.usage || null,
+      });
     } catch (_ragErr) {
       const answer = await requestOpenRouterAnswer(enrichedQuery);
       return res.json({ answer });

@@ -78,6 +78,47 @@ async function updateTokenCount(messageHandle, text) {
   }
 }
 
+function setExactUsageMeta(messageMetaEl, usage) {
+  if (!messageMetaEl || !usage) {
+    return false;
+  }
+
+  const prompt = Number(usage.prompt_tokens || 0);
+  const completion = Number(usage.completion_tokens || 0);
+  const total = Number(usage.total_tokens || 0);
+  const hasAny = prompt > 0 || completion > 0 || total > 0;
+
+  if (!hasAny) {
+    return false;
+  }
+
+  if (completion > 0) {
+    messageMetaEl.textContent = `Tokens: ${total} (in ${prompt}, out ${completion})`;
+  } else {
+    messageMetaEl.textContent = `Tokens: ${total} (input ${prompt})`;
+  }
+
+  return true;
+}
+
+function extractUsageMarker(text) {
+  const marker = "\n__USAGE__";
+  const markerIndex = text.lastIndexOf(marker);
+
+  if (markerIndex === -1) {
+    return { cleanText: text, usage: null };
+  }
+
+  const cleanText = text.slice(0, markerIndex);
+  const rawUsage = text.slice(markerIndex + marker.length);
+
+  try {
+    return { cleanText, usage: JSON.parse(rawUsage) };
+  } catch (_err) {
+    return { cleanText: text, usage: null };
+  }
+}
+
 function autoResize() {
   messageInput.style.height = "auto";
   messageInput.style.height = `${Math.min(messageInput.scrollHeight, 160)}px`;
@@ -177,15 +218,28 @@ chatForm.addEventListener("submit", async (event) => {
       }
 
       assistantText += decoder.decode();
-      const finalAssistantText = assistantText.trim() || "No response from RAG service.";
+      const extracted = extractUsageMarker(assistantText);
+      const finalAssistantText = extracted.cleanText.trim() || "No response from RAG service.";
       assistantBubble.querySelector(".message-body").textContent = finalAssistantText;
-      updateTokenCount({ meta: assistantBubble.querySelector(".message-meta") }, finalAssistantText);
+      const usedExact = setExactUsageMeta(
+        assistantBubble.querySelector(".message-meta"),
+        extracted.usage,
+      );
+      if (!usedExact) {
+        updateTokenCount({ meta: assistantBubble.querySelector(".message-meta") }, finalAssistantText);
+      }
       assistantText = finalAssistantText;
     } else {
       const data = await response.json();
       assistantText = (data.answer || "").trim() || "No response from RAG service.";
       assistantBubble.querySelector(".message-body").textContent = assistantText;
-      updateTokenCount({ meta: assistantBubble.querySelector(".message-meta") }, assistantText);
+      const usedExact = setExactUsageMeta(
+        assistantBubble.querySelector(".message-meta"),
+        data.usage,
+      );
+      if (!usedExact) {
+        updateTokenCount({ meta: assistantBubble.querySelector(".message-meta") }, assistantText);
+      }
     }
 
     conversation.push({ role: "assistant", content: assistantText });
@@ -249,9 +303,12 @@ uploadForm.addEventListener("submit", async (event) => {
     }
 
     const data = await response.json();
+    const embeddingUsage = data.embeddingUsage || {};
+    const embeddingTokens = Number(embeddingUsage.total_tokens || 0);
+    const usageSuffix = embeddingTokens > 0 ? ` Embedding tokens: ${embeddingTokens}.` : "";
     addMessage(
       "system",
-      `Indexed ${data.filesProcessed || 0} file(s), skipped ${data.filesSkipped || 0}, chunks: ${data.chunks || 0}.`,
+      `Indexed ${data.filesProcessed || 0} file(s), skipped ${data.filesSkipped || 0}, chunks: ${data.chunks || 0}.${usageSuffix}`,
     );
     documentInput.value = "";
     hasUploadedDocuments = true;

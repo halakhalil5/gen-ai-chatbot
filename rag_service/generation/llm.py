@@ -28,4 +28,15 @@ def generate(prompt):
         model=model,
         messages=[{"role": "user", "content": prompt}]
     )
-    return response.choices[0].message.content
+
+    usage = response.usage
+    usage_payload = {
+        "prompt_tokens": getattr(usage, "prompt_tokens", None),
+        "completion_tokens": getattr(usage, "completion_tokens", None),
+        "total_tokens": getattr(usage, "total_tokens", None),
+    }
+
+    return {
+        "answer": response.choices[0].message.content,
+        "usage": usage_payload,
+    }

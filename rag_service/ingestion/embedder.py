@@ -28,3 +28,24 @@ def embed(text):
         model=model,
         input=text
     ).data[0].embedding
+
+
+def embed_with_usage(text):
+    client = _build_client()
+    model = os.getenv("RAG_EMBED_MODEL") or "openai/text-embedding-3-small"
+
+    response = client.embeddings.create(
+        model=model,
+        input=text
+    )
+
+    usage = response.usage
+    usage_payload = {
+        "prompt_tokens": getattr(usage, "prompt_tokens", None),
+        "total_tokens": getattr(usage, "total_tokens", None),
+    }
+
+    return {
+        "embedding": response.data[0].embedding,
+        "usage": usage_payload,
+    }

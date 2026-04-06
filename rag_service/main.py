@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from generation.llm import generate
 from generation.prompt import build_prompt
 from ingestion.chunker import chunk_text
-from ingestion.embedder import embed
+from ingestion.embedder import embed_with_usage
 from ingestion.indexer import build_index
 from ingestion.loader import load_text_from_bytes
 from retrieval.retriever import retrieve
@@ -52,8 +52,8 @@ async def rag_chat(payload: RAGQuery):
 
     chunks = retrieve(query)
     prompt = build_prompt(query, chunks)
-    answer = generate(prompt)
-    return {"answer": answer}
+    result = generate(prompt)
+    return {"answer": result["answer"], "usage": result["usage"]}
 
 
 @app.post("/upload")
@@ -84,12 +84,27 @@ async def upload_documents(files: list[UploadFile] = File(...)):
     if not all_chunks:
         raise HTTPException(status_code=400, detail="No readable content found in uploaded files.")
 
-    embeddings = [embed(chunk) for chunk in all_chunks]
+    embeddings = []
+    embedding_prompt_tokens = 0
+    embedding_total_tokens = 0
+
+    for chunk in all_chunks:
+        embed_result = embed_with_usage(chunk)
+        embeddings.append(embed_result["embedding"])
+
+        chunk_usage = embed_result.get("usage") or {}
+        embedding_prompt_tokens += int(chunk_usage.get("prompt_tokens") or 0)
+        embedding_total_tokens += int(chunk_usage.get("total_tokens") or 0)
+
     build_index(embeddings, all_chunks)
 
     return {
         "message": "Documents indexed successfully.",
         "filesProcessed": len(processed),
         "filesSkipped": len(skipped),
-        "chunks": len(all_chunks)
+        "chunks": len(all_chunks),
+        "embeddingUsage": {
+            "prompt_tokens": embedding_prompt_tokens,
+            "total_tokens": embedding_total_tokens,
+        },
     }
