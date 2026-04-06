@@ -9,6 +9,7 @@
     "dev": "node server.js"
   },
   "dependencies": {
+    "@dqbd/tiktoken": "^1.0.22",
     "axios": "^1.14.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
