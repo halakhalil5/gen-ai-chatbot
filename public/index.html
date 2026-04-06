@@ -26,6 +26,11 @@
           <label for="modelInput">Model</label>
           <input id="modelInput" value="openrouter/auto" />
         </div>
+        <form id="uploadForm" class="upload-control">
+          <label for="documentInput">Upload Docs</label>
+          <input id="documentInput" type="file" multiple accept=".txt,.md,.csv,.json,.log,.py,.js,.html,.css" />
+          <button id="uploadBtn" type="submit">Index</button>
+        </form>
       </header>
 
       <section id="chatWindow" class="chat-window" aria-live="polite"></section>

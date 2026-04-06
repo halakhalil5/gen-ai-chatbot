@@ -1,33 +1,41 @@
-# Gen AI Chatbot UI
+# Gen AI Chatbot + RAG (FAISS)
 
-A modern chatbot UI with a secure server proxy for OpenRouter.
+This project now has two services:
+
+- Node.js app at port 3000 for frontend + proxy routes
+- FastAPI RAG service at port 8000 for retrieval and indexing
 
 ## Setup
 
-1. Install dependencies:
+1. Install Node dependencies:
 
-```bash
-npm install
-```
+	npm install
 
-2. Create `.env` from `.env.example` and set your key:
+2. Create .env from .env.example:
 
-```env
-OPENROUTER_API_KEY=your_key_here
-OPENROUTER_MODEL=openrouter/auto
-PORT=3000
-```
+	OPENROUTER_API_KEY=your_key_here
+	OPENROUTER_MODEL=openrouter/auto
+	PORT=3000
+	RAG_SERVICE_URL=http://localhost:8000
 
-3. Start:
+3. Set up Python dependencies for RAG service:
 
-```bash
-npm run dev
-```
+	pip install -r rag_service/requirement.txt
 
-4. Open `http://localhost:3000`
+4. Start FastAPI service:
 
-## Why this is secure
+	cd rag_service
+	uvicorn main:app --reload --port 8000
 
-- The browser calls `/api/chat` on your local server.
-- Your API key is read only from `.env` on the server.
-- The key is never exposed in frontend JavaScript.
+5. Start Node app (from project root):
+
+	npm run dev
+
+6. Open http://localhost:3000
+
+## Flow
+
+- Upload documents from the frontend. Files are sent to Node route /api/upload-documents.
+- Node forwards files to FastAPI /upload and triggers FAISS index rebuild.
+- Chat requests are sent to Node route /chat.
+- Node forwards to FastAPI /rag and returns the answer.
