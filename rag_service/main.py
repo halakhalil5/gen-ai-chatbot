@@ -7,10 +7,10 @@ from pydantic import BaseModel
 from generation.llm import generate
 from generation.prompt import build_prompt
 from ingestion.chunker import chunk_text
-from ingestion.embedder import embed_with_usage
+from ingestion.embedder import embed_batch_with_usage
 from ingestion.indexer import build_index
 from ingestion.loader import load_text_from_bytes
-from retrieval.retriever import retrieve
+from retrieval.retriever import retrieve, reload_index
 
 app = FastAPI()
 
@@ -65,9 +65,22 @@ async def upload_documents(files: list[UploadFile] = File(...)):
     processed = []
     skipped = []
 
+    import time
+    start_time = time.time()
+    
+    with open("debug.log", "a", encoding="utf-8") as f:
+        f.write(f"\n--- New Upload Started at {time.time()} ---\n")
+    
     for file in files:
+        t0 = time.time()
+        with open("debug.log", "a", encoding="utf-8") as f:
+            f.write(f"Starting to load {file.filename}...\n")
+            
         raw = await file.read()
         text = load_text_from_bytes(file.filename or "unknown", raw)
+        
+        with open("debug.log", "a", encoding="utf-8") as f:
+            f.write(f"Loaded {file.filename} in {time.time() - t0:.2f}s (Extracted {len(text)} chars)\n")
 
         if not text.strip():
             skipped.append(file.filename or "unknown")
@@ -81,22 +94,39 @@ async def upload_documents(files: list[UploadFile] = File(...)):
         all_chunks.extend(chunks)
         processed.append(file.filename or "unknown")
 
+    t1_chunk = time.time()
+    with open("debug.log", "a", encoding="utf-8") as f:
+        f.write(f"Total loading & chunking took {t1_chunk - start_time:.2f}s for {len(all_chunks)} chunks\n")
+
     if not all_chunks:
         raise HTTPException(status_code=400, detail="No readable content found in uploaded files.")
 
-    embeddings = []
-    embedding_prompt_tokens = 0
-    embedding_total_tokens = 0
+    t1 = time.time()
+    with open("debug.log", "a", encoding="utf-8") as f:
+        f.write(f"Starting embeddings for {len(all_chunks)} chunks...\n")
+        
+    embed_result = embed_batch_with_usage(all_chunks)
+    embeddings = embed_result["embeddings"]
+    
+    t2_embed = time.time()
+    with open("debug.log", "a", encoding="utf-8") as f:
+        f.write(f"Embedding {len(all_chunks)} chunks took {t2_embed - t1:.2f}s\n")
+    
+    usage = embed_result.get("usage", {})
+    embedding_prompt_tokens = usage.get("prompt_tokens", 0)
+    embedding_total_tokens = usage.get("total_tokens", 0)
 
-    for chunk in all_chunks:
-        embed_result = embed_with_usage(chunk)
-        embeddings.append(embed_result["embedding"])
-
-        chunk_usage = embed_result.get("usage") or {}
-        embedding_prompt_tokens += int(chunk_usage.get("prompt_tokens") or 0)
-        embedding_total_tokens += int(chunk_usage.get("total_tokens") or 0)
-
+    t2 = time.time()
+    with open("debug.log", "a", encoding="utf-8") as f:
+        f.write(f"Starting index build...\n")
+        
     build_index(embeddings, all_chunks)
+    reload_index()
+    t3_index = time.time()
+    
+    with open("debug.log", "a", encoding="utf-8") as f:
+        f.write(f"Index build & reload took {t3_index - t2:.2f}s\n")
+        f.write(f"Total upload request took {t3_index - start_time:.2f}s\n")
 
     return {
         "message": "Documents indexed successfully.",
@@ -107,4 +137,10 @@ async def upload_documents(files: list[UploadFile] = File(...)):
             "prompt_tokens": embedding_prompt_tokens,
             "total_tokens": embedding_total_tokens,
         },
+        "timings": {
+            "load_and_chunk": round(t1_chunk - start_time, 2),
+            "embed": round(t2_embed - t1, 2),
+            "index": round(t3_index - t2, 2),
+            "total": round(t3_index - start_time, 2)
+        }
     }

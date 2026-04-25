@@ -7,6 +7,9 @@ const uploadForm = document.getElementById("uploadForm");
 const documentInput = document.getElementById("documentInput");
 const uploadBtn = document.getElementById("uploadBtn");
 const modeBadge = document.getElementById("modeBadge");
+const fileList = document.getElementById("fileList");
+
+let selectedFilesArray = [];
 
 const conversation = [
   {
@@ -135,6 +138,24 @@ function setUploadBusy(busy) {
   documentInput.disabled = busy;
   uploadBtn.textContent = busy ? "Indexing..." : "Index";
 }
+
+function renderFileList() {
+  if (!fileList) return;
+  fileList.innerHTML = "";
+  selectedFilesArray.forEach(file => {
+    const el = document.createElement("div");
+    el.className = "file-item";
+    el.textContent = file.name;
+    fileList.appendChild(el);
+  });
+}
+
+documentInput.addEventListener("change", (e) => {
+  const newFiles = Array.from(e.target.files || []);
+  selectedFilesArray = [...selectedFilesArray, ...newFiles];
+  renderFileList();
+  documentInput.value = "";
+});
 
 function appendAssistantMessage() {
   const el = document.createElement("article");
@@ -271,19 +292,18 @@ chatForm.addEventListener("submit", async (event) => {
 uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  const files = Array.from(documentInput.files || []);
-  if (files.length === 0) {
+  if (selectedFilesArray.length === 0) {
     addMessage("system", "Select at least one document to upload.");
     return;
   }
 
   const form = new FormData();
-  for (const file of files) {
+  for (const file of selectedFilesArray) {
     form.append("documents", file);
   }
 
   setUploadBusy(true);
-  addMessage("system", `Indexing ${files.length} file(s)...`);
+  addMessage("system", `Indexing ${selectedFilesArray.length} file(s)...`);
 
   try {
     const response = await fetch("/api/upload-documents", {
@@ -306,11 +326,19 @@ uploadForm.addEventListener("submit", async (event) => {
     const embeddingUsage = data.embeddingUsage || {};
     const embeddingTokens = Number(embeddingUsage.total_tokens || 0);
     const usageSuffix = embeddingTokens > 0 ? ` Embedding tokens: ${embeddingTokens}.` : "";
+    
+    let timingSuffix = "";
+    if (data.timings) {
+      timingSuffix = ` [Load: ${data.timings.load_and_chunk}s, Embed: ${data.timings.embed}s, Total: ${data.timings.total}s]`;
+    }
+
     addMessage(
       "system",
-      `Indexed ${data.filesProcessed || 0} file(s), skipped ${data.filesSkipped || 0}, chunks: ${data.chunks || 0}.${usageSuffix}`,
+      `Indexed ${data.filesProcessed || 0} file(s), skipped ${data.filesSkipped || 0}, chunks: ${data.chunks || 0}.${usageSuffix}${timingSuffix}`,
     );
     documentInput.value = "";
+    selectedFilesArray = [];
+    renderFileList();
     hasUploadedDocuments = true;
     setModeBadge();
   } catch (error) {

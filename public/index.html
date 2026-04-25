@@ -29,7 +29,8 @@
         </div>
         <form id="uploadForm" class="upload-control">
           <label for="documentInput">Upload Docs</label>
-          <input id="documentInput" type="file" multiple accept=".txt,.md,.csv,.json,.log,.py,.js,.html,.css" />
+          <input id="documentInput" type="file" multiple accept=".txt,.md,.csv,.json,.log,.py,.js,.html,.css,.pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" />
+          <div id="fileList" class="file-list"></div>
           <button id="uploadBtn" type="submit">Index</button>
         </form>
       </header>

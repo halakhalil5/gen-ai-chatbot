@@ -27,6 +27,12 @@ def _load_index_if_needed():
     with open(CHUNKS_PATH, "rb") as f:
         chunks = pickle.load(f)
 
+def reload_index():
+    global index, chunks
+    index = None
+    chunks = []
+    _load_index_if_needed()
+
 def retrieve(query, k=3):
     _load_index_if_needed()
 
