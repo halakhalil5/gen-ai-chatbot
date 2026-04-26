@@ -229,6 +229,22 @@ h1 {
   opacity: 0.78;
 }
 
+.message-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.message-images img {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+
 .message.user {
   align-self: flex-end;
   background: var(--user);
@@ -251,10 +267,47 @@ h1 {
 .chat-form {
   padding: 0.8rem;
   border-top: 1px solid var(--line);
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  flex-direction: column;
   gap: 0.7rem;
   background: rgba(255, 255, 255, 0.65);
+}
+
+.chat-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chat-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+}
+
+.image-preview {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+}
+
+.image-preview img {
+  height: 60px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+
+.icon-btn {
+  cursor: pointer;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  transition: color 0.15s ease;
+}
+
+.icon-btn:hover {
+  color: #1e5eff;
 }
 
 #messageInput {

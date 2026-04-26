@@ -22,12 +22,22 @@ def build_index(embeddings, chunks, user_id):
     existing_chunks = []
 
     if index_path.exists() and chunks_path.exists():
-        index = faiss.read_index(str(index_path))
-        with open(chunks_path, "rb") as f:
-            try:
-                existing_chunks = pickle.load(f)
-            except EOFError:
+        try:
+            index = faiss.read_index(str(index_path))
+            if index.d != dim:
+                print(f"Dimension mismatch: index has {index.d}, new embeddings have {dim}. Resetting index.")
+                index = faiss.IndexFlatL2(dim)
                 existing_chunks = []
+            else:
+                with open(chunks_path, "rb") as f:
+                    try:
+                        existing_chunks = pickle.load(f)
+                    except (EOFError, pickle.UnpicklingError):
+                        existing_chunks = []
+        except Exception as e:
+            print(f"Error loading existing index: {e}. Creating new index.")
+            index = faiss.IndexFlatL2(dim)
+            existing_chunks = []
     else:
         index = faiss.IndexFlatL2(dim)
 

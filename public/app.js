@@ -9,6 +9,10 @@ const documentInput = document.getElementById("documentInput");
 const uploadBtn = document.getElementById("uploadBtn");
 const modeBadge = document.getElementById("modeBadge");
 const fileList = document.getElementById("fileList");
+const imageInputQuery = document.getElementById("imageInputQuery");
+const imagePreview = document.getElementById("imagePreview");
+
+let selectedQueryImageBase64 = "";
 
 let selectedFilesArray = [];
 
@@ -38,13 +42,34 @@ function setModeBadge() {
 
 setModeBadge();
 
-function addMessage(role, text) {
+function addMessage(role, text, context = []) {
   const el = document.createElement("article");
   el.className = `message ${role}`;
 
   const body = document.createElement("div");
   body.className = "message-body";
-  body.textContent = text;
+  
+  if (context && context.length > 0) {
+    const imgContainer = document.createElement("div");
+    imgContainer.className = "message-images";
+    context.forEach(c => {
+      if (c.metadata && c.metadata.type === "image" && c.metadata.image_path) {
+        const img = document.createElement("img");
+        img.src = `/api/files/${c.metadata.image_path}`;
+        img.alt = c.text || "Retrieved image";
+        img.title = c.text;
+        img.onclick = () => window.open(img.src, "_blank");
+        imgContainer.appendChild(img);
+      }
+    });
+    if (imgContainer.hasChildNodes()) {
+      body.appendChild(imgContainer);
+    }
+  }
+
+  const textNode = document.createElement("div");
+  textNode.textContent = text;
+  body.appendChild(textNode);
 
   const meta = document.createElement("div");
   meta.className = "message-meta";
@@ -206,8 +231,13 @@ chatForm.addEventListener("submit", async (event) => {
         message: content,
         userId: userInput.value.trim() || "user_001",
         useRag: hasUploadedDocuments,
+        imageQuery: selectedQueryImageBase64
       }),
     });
+
+    // Clear image query after sending
+    selectedQueryImageBase64 = "";
+    if (imagePreview) imagePreview.innerHTML = "";
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
@@ -254,7 +284,33 @@ chatForm.addEventListener("submit", async (event) => {
     } else {
       const data = await response.json();
       assistantText = (data.answer || "").trim() || "No response from RAG service.";
-      assistantBubble.querySelector(".message-body").textContent = assistantText;
+      
+      // Pass retrieved context (images) to the bubble update if we had a function for it
+      // But since we just created the bubble, let's update it.
+      const bodyEl = assistantBubble.querySelector(".message-body");
+      bodyEl.innerHTML = ""; // Clear
+      
+      if (data.context && data.context.length > 0) {
+        const imgContainer = document.createElement("div");
+        imgContainer.className = "message-images";
+        data.context.forEach(c => {
+          if (c.metadata && c.metadata.type === "image" && c.metadata.image_path) {
+            const img = document.createElement("img");
+            img.src = `/api/files/${c.metadata.image_path}`;
+            img.alt = c.text || "Retrieved image";
+            img.onclick = () => window.open(img.src, "_blank");
+            imgContainer.appendChild(img);
+          }
+        });
+        if (imgContainer.hasChildNodes()) {
+          bodyEl.appendChild(imgContainer);
+        }
+      }
+      
+      const textNode = document.createElement("div");
+      textNode.textContent = assistantText;
+      bodyEl.appendChild(textNode);
+
       const usedExact = setExactUsageMeta(
         assistantBubble.querySelector(".message-meta"),
         data.usage,
@@ -357,3 +413,19 @@ messageInput.addEventListener("keydown", (event) => {
     chatForm.requestSubmit();
   }
 });
+
+if (imageInputQuery) {
+  imageInputQuery.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      selectedQueryImageBase64 = event.target.result;
+      if (imagePreview) {
+        imagePreview.innerHTML = `<img src="${selectedQueryImageBase64}" />`;
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}

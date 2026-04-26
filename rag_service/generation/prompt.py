@@ -1,5 +1,13 @@
 def build_prompt(query, chunks):
-    context = "\n\n".join(chunks)
+    # Extract text from multimodal chunk objects
+    text_list = []
+    for c in chunks:
+        if isinstance(c, dict):
+            text_list.append(c.get("text", ""))
+        else:
+            text_list.append(str(c))
+            
+    context = "\n\n".join(text_list)
 
     return f"""
     Answer ONLY using this context.

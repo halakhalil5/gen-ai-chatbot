@@ -50,3 +50,37 @@ Embedding 1 chunks took 0.67s
 Starting index build...
 Index build & reload took 0.05s
 Total upload request took 0.74s
+
+--- New Upload Started at 1777193351.988176 ---
+Starting to load rag_test_document.pdf...
+Loaded rag_test_document.pdf in 0.01s (Extracted 630 chars)
+Total loading & chunking took 0.01s for 1 chunks
+
+--- New Upload Started at 1777193380.855581 ---
+Starting to load rag_test_document.pdf...
+Loaded rag_test_document.pdf in 0.00s (Extracted 630 chars)
+Total loading & chunking took 0.01s for 1 chunks
+
+--- New Upload Started at 1777193627.6717658 ---
+Total loading & chunking took 0.01s for 1 chunks
+Starting batch embedding for 1 items...
+Embedding took 83.00s
+Starting index build for user user_001...
+Index build & reload took 0.06s
+Total upload request took 83.08s
+
+--- New Upload Started at 1777193710.7529495 ---
+Total loading & chunking took 0.01s for 2 chunks
+Starting batch embedding for 2 items...
+Embedding took 0.08s
+Starting index build for user user_001...
+Index build & reload took 0.04s
+Total upload request took 0.13s
+
+--- New Upload Started at 1777193726.2103968 ---
+Total loading & chunking took 0.02s for 1 chunks
+Starting batch embedding for 1 items...
+Embedding took 0.09s
+Starting index build for user user_001...
+Index build & reload took 0.04s
+Total upload request took 0.16s

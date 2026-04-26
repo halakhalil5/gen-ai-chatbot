@@ -38,8 +38,9 @@ function buildUploadForm(files, userId) {
   return form;
 }
 
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "20mb" })); // Increase limit for images
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/api/files", express.static(path.join(__dirname, "rag_service", "data")));
 
 function extractErrorMessage(err, fallbackMessage) {
   const responseData = err?.response?.data;
@@ -336,8 +337,9 @@ app.post("/api/save-memory", async (req, res) => {
 app.post("/chat", async (req, res) => {
   try {
     const userMessage = (req.body?.message || "").trim();
-    const userId = req.body?.userId || "user_001"; // add this
+    const userId = req.body?.userId || "user_001";
     const useRag = Boolean(req.body?.useRag);
+    const imageQuery = req.body?.imageQuery || ""; // New field
     if (!userMessage) {
       return res.status(400).json({ error: "message is required." });
     }
@@ -366,7 +368,11 @@ app.post("/chat", async (req, res) => {
           try {
             response = await axios.post(
               `${baseUrl}${endpoint}`,
-              { query: enrichedQuery, user_id: userId },
+              { 
+                query: enrichedQuery, 
+                user_id: userId,
+                image_query: imageQuery 
+              },
               { timeout: 120000 },
             );
             break;

@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 from pathlib import Path
 from ingestion.embedder import embed
+from ingestion.multimodal_embedder import embed_image as clip_embed_image
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 INDEX_PATH = DATA_DIR / "index.faiss"
@@ -37,7 +38,7 @@ def reload_index(user_id):
         del user_cache[user_id]
     _load_index_for_user(user_id)
 
-def retrieve(query, user_id, k=3):
+def retrieve(query=None, user_id="user_001", k=3, image_bytes=None):
     data = _load_index_for_user(user_id)
 
     if not data or not data["index"] or not data["chunks"]:
@@ -46,7 +47,14 @@ def retrieve(query, user_id, k=3):
     index = data["index"]
     chunks = data["chunks"]
 
-    q_emb = embed(query)
+    if image_bytes:
+        import io
+        from PIL import Image
+        img = Image.open(io.BytesIO(image_bytes))
+        q_emb = clip_embed_image(img)
+    else:
+        q_emb = embed(query or "")
+
     top_k = min(k, len(chunks))
     _, indices = index.search(np.array([q_emb]).astype("float32"), top_k)
     return [chunks[i] for i in indices[0] if 0 <= i < len(chunks)]
