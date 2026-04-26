@@ -30,3 +30,23 @@ Embedding 3 chunks took 1.30s
 Starting index build...
 Index build & reload took 0.21s
 Total upload request took 1.53s
+
+--- New Upload Started at 1777191964.1959674 ---
+Starting to load The Eiffel Tower is a wrought.docx...
+Loaded The Eiffel Tower is a wrought.docx in 0.02s (Extracted 915 chars)
+Total loading & chunking took 0.02s for 2 chunks
+Starting embeddings for 2 chunks...
+Embedding 2 chunks took 3.24s
+Starting index build...
+Index build & reload took 0.07s
+Total upload request took 3.33s
+
+--- New Upload Started at 1777192033.5360563 ---
+Starting to load rag_test_document.pdf...
+Loaded rag_test_document.pdf in 0.01s (Extracted 630 chars)
+Total loading & chunking took 0.02s for 1 chunks
+Starting embeddings for 1 chunks...
+Embedding 1 chunks took 0.67s
+Starting index build...
+Index build & reload took 0.05s
+Total upload request took 0.74s

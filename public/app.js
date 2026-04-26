@@ -3,6 +3,7 @@ const chatForm = document.getElementById("chatForm");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
 const modelInput = document.getElementById("modelInput");
+const userInput = document.getElementById("userInput");
 const uploadForm = document.getElementById("uploadForm");
 const documentInput = document.getElementById("documentInput");
 const uploadBtn = document.getElementById("uploadBtn");
@@ -203,7 +204,7 @@ chatForm.addEventListener("submit", async (event) => {
       },
       body: JSON.stringify({
         message: content,
-        userId: "user_001",
+        userId: userInput.value.trim() || "user_001",
         useRag: hasUploadedDocuments,
       }),
     });
@@ -276,7 +277,7 @@ chatForm.addEventListener("submit", async (event) => {
           },
           body: JSON.stringify({
             messages: nonSystemMessages,
-            userId: "user_001",
+            userId: userInput.value.trim() || "user_001",
           }),
         }).catch(() => {});
       }
@@ -298,6 +299,7 @@ uploadForm.addEventListener("submit", async (event) => {
   }
 
   const form = new FormData();
+  form.append("userId", userInput.value.trim() || "user_001");
   for (const file of selectedFilesArray) {
     form.append("documents", file);
   }

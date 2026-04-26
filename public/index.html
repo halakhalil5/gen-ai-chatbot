@@ -18,20 +18,30 @@
 
     <main class="app-shell">
       <header class="top-bar">
-        <div>
+        <div class="brand">
           <p class="eyebrow">Local AI Console</p>
           <h1>Nova Chat</h1>
           <p id="modeBadge" class="mode-badge">Mode: Chat</p>
         </div>
-        <div class="model-control">
-          <label for="modelInput">Model</label>
-          <input id="modelInput" value="openrouter/auto" />
+        
+        <div class="controls-group">
+          <div class="model-control">
+            <label for="modelInput">Model</label>
+            <input id="modelInput" value="openrouter/auto" />
+          </div>
+          <div class="model-control">
+            <label for="userInput">User Name</label>
+            <input id="userInput" value="user_001" />
+          </div>
         </div>
+
         <form id="uploadForm" class="upload-control">
           <label for="documentInput">Upload Docs</label>
-          <input id="documentInput" type="file" multiple accept=".txt,.md,.csv,.json,.log,.py,.js,.html,.css,.pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" />
+          <div class="upload-row">
+            <input id="documentInput" type="file" multiple accept=".txt,.md,.csv,.json,.log,.py,.js,.html,.css,.pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" />
+            <button id="uploadBtn" type="submit">Index</button>
+          </div>
           <div id="fileList" class="file-list"></div>
-          <button id="uploadBtn" type="submit">Index</button>
         </form>
       </header>
 

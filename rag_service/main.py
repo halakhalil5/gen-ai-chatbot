@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from generation.llm import generate
@@ -37,6 +37,7 @@ _load_env_file()
 
 class RAGQuery(BaseModel):
     query: str
+    user_id: str = "user_001"
 
 
 @app.get("/health")
@@ -50,14 +51,17 @@ async def rag_chat(payload: RAGQuery):
     if not query:
         raise HTTPException(status_code=400, detail="query is required.")
 
-    chunks = retrieve(query)
+    chunks = retrieve(query, payload.user_id)
     prompt = build_prompt(query, chunks)
     result = generate(prompt)
     return {"answer": result["answer"], "usage": result["usage"]}
 
 
 @app.post("/upload")
-async def upload_documents(files: list[UploadFile] = File(...)):
+async def upload_documents(
+    files: list[UploadFile] = File(...),
+    user_id: str = Form("user_001")
+):
     if not files:
         raise HTTPException(status_code=400, detail="At least one file is required.")
 
@@ -71,12 +75,20 @@ async def upload_documents(files: list[UploadFile] = File(...)):
     with open("debug.log", "a", encoding="utf-8") as f:
         f.write(f"\n--- New Upload Started at {time.time()} ---\n")
     
+    user_dir = Path(__file__).resolve().parents[0] / "data" / user_id / "files"
+    user_dir.mkdir(parents=True, exist_ok=True)
+
     for file in files:
         t0 = time.time()
         with open("debug.log", "a", encoding="utf-8") as f:
             f.write(f"Starting to load {file.filename}...\n")
             
         raw = await file.read()
+        
+        file_path = user_dir / (file.filename or "unknown")
+        with open(file_path, "wb") as f:
+            f.write(raw)
+
         text = load_text_from_bytes(file.filename or "unknown", raw)
         
         with open("debug.log", "a", encoding="utf-8") as f:
@@ -120,8 +132,8 @@ async def upload_documents(files: list[UploadFile] = File(...)):
     with open("debug.log", "a", encoding="utf-8") as f:
         f.write(f"Starting index build...\n")
         
-    build_index(embeddings, all_chunks)
-    reload_index()
+    build_index(embeddings, all_chunks, user_id)
+    reload_index(user_id)
     t3_index = time.time()
     
     with open("debug.log", "a", encoding="utf-8") as f:

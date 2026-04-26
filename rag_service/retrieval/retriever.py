@@ -8,36 +8,43 @@ DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 INDEX_PATH = DATA_DIR / "index.faiss"
 CHUNKS_PATH = DATA_DIR / "chunks.pkl"
 
-index = None
-chunks = []
+user_cache = {}  # {user_id: {"index": index, "chunks": chunks}}
 
 
-def _load_index_if_needed():
-    global index, chunks
+def _load_index_for_user(user_id):
+    if user_id in user_cache:
+        return user_cache[user_id]
 
-    if index is not None and chunks:
-        return
+    user_dir = DATA_DIR / user_id
+    index_path = user_dir / "index.faiss"
+    chunks_path = user_dir / "chunks.pkl"
 
-    if not INDEX_PATH.exists() or not CHUNKS_PATH.exists():
-        index = None
-        chunks = []
-        return
+    if not index_path.exists() or not chunks_path.exists():
+        return None
 
-    index = faiss.read_index(str(INDEX_PATH))
-    with open(CHUNKS_PATH, "rb") as f:
-        chunks = pickle.load(f)
+    try:
+        index = faiss.read_index(str(index_path))
+        with open(chunks_path, "rb") as f:
+            chunks = pickle.load(f)
+        
+        user_cache[user_id] = {"index": index, "chunks": chunks}
+        return user_cache[user_id]
+    except Exception:
+        return None
 
-def reload_index():
-    global index, chunks
-    index = None
-    chunks = []
-    _load_index_if_needed()
+def reload_index(user_id):
+    if user_id in user_cache:
+        del user_cache[user_id]
+    _load_index_for_user(user_id)
 
-def retrieve(query, k=3):
-    _load_index_if_needed()
+def retrieve(query, user_id, k=3):
+    data = _load_index_for_user(user_id)
 
-    if index is None or not chunks:
+    if not data or not data["index"] or not data["chunks"]:
         return []
+
+    index = data["index"]
+    chunks = data["chunks"]
 
     q_emb = embed(query)
     top_k = min(k, len(chunks))

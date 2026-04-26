@@ -19,11 +19,14 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 },
 });
 const { loadMemory, saveMemory, compressMemory } = require("./memory");
-const INDEX_FILE_PATH = path.join(__dirname, "rag_service", "data", "index.faiss");
 const TOKENIZER = get_encoding("cl100k_base");
 
-function buildUploadForm(files) {
+function buildUploadForm(files, userId) {
   const form = new FormData();
+
+  if (userId) {
+    form.append("user_id", userId);
+  }
 
   for (const file of files) {
     form.append("files", file.buffer, {
@@ -89,13 +92,14 @@ function getOlderMessages(messages, recentCount = 6) {
   return validMessages.slice(0, validMessages.length - recentCount);
 }
 
-function hasIndexedDocuments() {
+function hasIndexedDocuments(userId) {
   try {
-    if (!fs.existsSync(INDEX_FILE_PATH)) {
+    const indexFilePath = path.join(__dirname, "rag_service", "data", userId, "index.faiss");
+    if (!fs.existsSync(indexFilePath)) {
       return false;
     }
 
-    const stats = fs.statSync(INDEX_FILE_PATH);
+    const stats = fs.statSync(indexFilePath);
     return stats.size > 0;
   } catch (_err) {
     return false;
@@ -348,7 +352,7 @@ app.post("/chat", async (req, res) => {
       return streamOpenRouterAnswer(enrichedQuery, res);
     }
 
-    if (!hasIndexedDocuments()) {
+    if (!hasIndexedDocuments(userId)) {
       return streamOpenRouterAnswer(enrichedQuery, res);
     }
 
@@ -362,7 +366,7 @@ app.post("/chat", async (req, res) => {
           try {
             response = await axios.post(
               `${baseUrl}${endpoint}`,
-              { query: enrichedQuery },
+              { query: enrichedQuery, user_id: userId },
               { timeout: 120000 },
             );
             break;
@@ -422,7 +426,8 @@ app.post(
       for (const baseUrl of RAG_BASE_URLS) {
         for (const endpoint of candidatePaths) {
           try {
-            const form = buildUploadForm(files);
+            const userId = req.body.userId || "user_001";
+            const form = buildUploadForm(files, userId);
             response = await axios.post(`${baseUrl}${endpoint}`, form, {
               headers: form.getHeaders(),
               maxBodyLength: Infinity,

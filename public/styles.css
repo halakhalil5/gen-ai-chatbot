@@ -22,7 +22,8 @@ body {
   background: linear-gradient(140deg, var(--bg-a), var(--bg-b));
   display: grid;
   place-items: center;
-  overflow: hidden;
+  overflow-y: auto;
+  padding: 1rem 0;
 }
 
 .bg-gradient {
@@ -48,8 +49,10 @@ body {
 
 .app-shell {
   position: relative;
-  width: min(920px, 94vw);
-  height: min(88vh, 860px);
+  width: min(1000px, 96vw);
+  height: 92vh;
+  max-height: 900px;
+  min-height: 640px;
   border: 1px solid var(--line);
   border-radius: 26px;
   background: var(--card);
@@ -61,12 +64,13 @@ body {
 }
 
 .top-bar {
-  padding: 1rem 1.2rem;
+  padding: 0.8rem 1.2rem;
   border-bottom: 1px solid var(--line);
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
-  align-items: center;
+  gap: 1.5rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .eyebrow {
@@ -102,9 +106,17 @@ h1 {
   font-size: clamp(1.45rem, 2.2vw, 2rem);
 }
 
+.controls-group {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+  min-width: 280px;
+}
+
 .model-control {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.25rem;
+  flex: 1;
 }
 
 .upload-control {
@@ -112,32 +124,40 @@ h1 {
   gap: 0.35rem;
 }
 
-.model-control label {
-  font-size: 0.8rem;
-  color: var(--ink-soft);
-}
-
+.model-control label,
 .upload-control label {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--ink-soft);
+  font-weight: 500;
 }
 
 .model-control input {
-  width: min(320px, 44vw);
+  width: 100%;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 0.6rem 0.7rem;
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   background: rgba(255, 255, 255, 0.85);
 }
 
+.upload-control {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 300px;
+}
+
+.upload-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .upload-control input[type='file'] {
-  width: min(320px, 44vw);
+  flex: 1;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 0.45rem 0.55rem;
-  font-size: 0.74rem;
+  border-radius: 8px;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.72rem;
   background: rgba(255, 255, 255, 0.85);
 }
 
@@ -163,12 +183,13 @@ h1 {
 
 .upload-control button {
   border: none;
-  border-radius: 10px;
-  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
   background: #1e5eff;
   color: #fff;
   font-weight: 700;
   cursor: pointer;
+  font-size: 0.8rem;
 }
 
 .upload-control button:disabled {
@@ -182,6 +203,7 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+  min-height: 300px;
 }
 
 .message {
